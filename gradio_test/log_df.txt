@@ -1,0 +1,20 @@
+[INFO] Trainer: df | 2022-11-30_13-15-57 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+[INFO] Trainer: df | 2022-11-30_13-18-02 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+[INFO] Trainer: df | 2022-11-30_13-22-20 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+[INFO] Trainer: df | 2022-11-30_13-28-54 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+[INFO] Trainer: df | 2022-11-30_13-47-48 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
