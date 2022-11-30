@@ -160,8 +160,8 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     with gr.Row():
         button = gr.Button('Train current Prompt')
         checkpoint_button = gr.Button('Pause and create Checkpoint', interactive=False)
-
-    inputs = [prompt, iters, seed]
+    # define here to give at button press
+    inputs=[prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh, ws]
 
     # outputs
     with gr.Tab("Output"):
@@ -173,24 +173,21 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         video = gr.Video(label="video", visible=True, interactive=False)
         export_vid = gr.Button('Export Video', interactive=False)
     with gr.Tab("Final Mesh"):
-        mesh = gr.Model3D(label="Final Mesh", visible=True, interactive=False)
+        mesh_viz = gr.Model3D(label="Final Mesh", visible=True, interactive=False)
         export_mesh = gr.Button('Export Mesh', interactive=False)
+    with gr.Tab("Optimizer"):
+        gr.Markdown('The paper uses standard ADAM. De DO NOT fuck with that.')
 
     with gr.Row():
         logs = gr.Textbox(label="logging")
         memory = gr.Textbox(label="memory watcher")
         current_lr = gr.Number(label="Current Learning Rate", interactive=False, visible=True)
 
-    outputs = [image, depth_image, video, mesh]
-
-    # gradio main func
-    lr_list = []
-    def plot_lr(new_val):
-        lr_list.append(new_val)
-        plt.plot(lr_list)
+    #define outputs as list to give at buttonpress
+    outputs = [image, depth_image, video, current_lr, logs, memory]
 
 
-    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh):
+    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh, ws):
 
         global trainer, model
 
@@ -203,13 +200,14 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         opt.uniform_sphere_rate = 0.5
         opt.lambda_smooth = 0
         opt.ckpt = checkpoint
-        opt.workspace = ws.value
+        opt.workspace = ws
         opt.lr = lr
         opt.backbone = bb
-        if preset == 'grid':
-            opt.O = True
-        if preset == 'vanilla':
-            opt.O2 = True
+        if preset:
+            if preset[0] == 'grid':
+                opt.O = True
+            if preset[1] == 'vanilla':
+                opt.O2 = True
         if mesh:
             opt.save_mesh = True
 
@@ -293,6 +291,8 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         trainer.test(test_loader)
 
         results = glob.glob(os.path.join(opt.workspace, 'results', '*rgb*.mp4'))
+
+        # TODO figure out how to save the mesh once it is generated
         assert results is not None, "cannot retrieve results!"
         results.sort(key=lambda x: os.path.getmtime(x))  # sort by mtime
 
@@ -308,13 +308,14 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
 
     button.click(
         fn=submit,
-        inputs=[prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh],
-        outputs=[image, depth_image, video, current_lr, logs, memory]
-    )
+        inputs=inputs,
+        outputs=outputs)
 
 # concurrency_count: only allow ONE running progress, else GPU will OOM.
 demo.queue(concurrency_count=1)
 
+# IMPORTANT: if the program runs, it reacts sensitive to shutdowns. let it gracefully shutdown instead of killing it.
+# saves you from getting OOM
 demo.launch(show_error=True,
             show_tips=False,
             show_api=False,
