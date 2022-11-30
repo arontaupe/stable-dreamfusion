@@ -190,7 +190,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         plt.plot(lr_list)
 
 
-    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset):
+    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh):
 
         global trainer, model
 
@@ -210,6 +210,8 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
             opt.O = True
         if preset == 'vanilla':
             opt.O2 = True
+        if mesh:
+            opt.save_mesh = True
 
         seed_everything(seed)
 
@@ -306,7 +308,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
 
     button.click(
         fn=submit,
-        inputs=[prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset],
+        inputs=[prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh],
         outputs=[image, depth_image, video, current_lr, logs, memory]
     )
 
