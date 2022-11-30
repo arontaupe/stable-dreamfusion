@@ -1,3 +1,5 @@
+import time
+
 import torch
 import argparse
 
@@ -130,7 +132,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     # inputs
     with gr.Tab("Default Options"):
         prompt = gr.Textbox(label="Prompt", max_lines=1, value="a DSLR photo of a koi fish")
-        iters = gr.Slider(label="Iters", minimum=1000, maximum=20000, value=5000, step=100)
+        iters = gr.Slider(label="Iters", minimum=1000, maximum=20000, value=1000, step=100)
         seed = gr.Slider(label="Seed", minimum=0, maximum=2147483647, step=1, randomize=True)
 
     with gr.Tab("Advanced"):
@@ -140,7 +142,6 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
                         value="gradio_test", interactive=True)
         lr = gr.Slider(label="Initial Learning Rate", minimum=1e-4, maximum=1e-2, value=1e-3, step=1e-4,
                        interactive=True)
-        bb = gr.Dropdown(label="Backbone", choices=["grid", "vanilla"], value='grid', interactive=True)
         checkpoint = gr.Dropdown(label="Use Existing Checkpoints", choices=["latest", "scratch"], value='latest',
                                  interactive=True)
         steps_per_epoch = gr.Slider(label="Steps \r\n (Nr. of Steps in an Epoch, we get one Vis per Epoch)", minimum=8,
@@ -148,46 +149,59 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         guide = gr.Dropdown(label="Guidance", choices=["stable-diffusion", "clip"], value='stable-diffusion',
                             interactive=True)
         mesh = gr.Checkbox(label="Save Mesh", interactive=True, value=True)
+        albedo = gr.Checkbox(label="Use Albedo as Color (uglier and faster)", interactive=True, value=False)
+        jitter = gr.Checkbox(label="Add jitter to Camera Poses", interactive=True, value=False)
 
     with gr.Tab("Ray settings"):
         cuda = gr.Checkbox(label="Use Cuda Raymarching", interactive=True, value=False)
-        preset = gr.Checkboxgroup(label="Use Presets",
-                                  choices=["0 : fp16, dir_text, cuda_ray", "02 : vanilla backbone"],
+        bb_preset = gr.Dropdown(label="Use Presets",
+                                  choices=['none', "grid", "vanilla"],
+                                value='none',
                                   interactive=True)
+    with gr.Tab("Optimizer"):
+        gr.Markdown('The paper uses standard ADAM. We DO NOT fuck with that.')
 
-    flags = gr.Textbox(label="The Command to be executed", value=opt, visible=True, interactive=False)
+    flags = gr.Textbox(label="The default Values", value=opt, visible=True, interactive=False)
 
     with gr.Row():
         button = gr.Button('Train current Prompt')
+        # TODO make this button actually do something. i would like best if it takes checkpoints regularly and pauses gracefully
         checkpoint_button = gr.Button('Pause and create Checkpoint', interactive=False)
     # define here to give at button press
-    inputs=[prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh, ws]
+    inputs = [prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter]
 
     # outputs
     with gr.Tab("Output"):
         with gr.Row():
             image = gr.Image(label="image", visible=True, interactive=False)
             depth_image = gr.Image(label="depth_image", visible=True, interactive=False)
-            loss = gr.Plot(label="Loss Function", visible=True, interactive=False)
+            # TODO not deemed important, i think seeing loss isnt much use (and i cant get it to output loss)
+            #loss = gr.Plot(label="Loss Function", visible=True, interactive=False)
     with gr.Tab("Final Video"):
         video = gr.Video(label="video", visible=True, interactive=False)
+        # TODO make button work
         export_vid = gr.Button('Export Video', interactive=False)
     with gr.Tab("Final Mesh"):
+        # TODO somehow bind the output mehs to gradio so it can be displayed
         mesh_viz = gr.Model3D(label="Final Mesh", visible=True, interactive=False)
         export_mesh = gr.Button('Export Mesh', interactive=False)
-    with gr.Tab("Optimizer"):
-        gr.Markdown('The paper uses standard ADAM. De DO NOT fuck with that.')
+
 
     with gr.Row():
-        logs = gr.Textbox(label="logging")
         memory = gr.Textbox(label="memory watcher")
         current_lr = gr.Number(label="Current Learning Rate", interactive=False, visible=True)
+        time_elapsed = gr.Number(label="Time Elapsed", interactive=False, visible=True)
+        time_eta = gr.Number(label="Current ETA estimate", interactive=False, visible=True)
+        time_last_epoch = gr.Number(label="Time last Epoch", interactive=False, visible=True)
+        avg_epoch_time = gr.Number(label="Average time per epoch", interactive=False, visible=True)
+
+    logs = gr.Textbox(label="logging")
 
     #define outputs as list to give at buttonpress
-    outputs = [image, depth_image, video, current_lr, logs, memory]
+    outputs = [image, depth_image, video, current_lr, logs, memory, flags, time_elapsed, time_last_epoch, mesh_viz]
 
 
-    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb, preset, mesh, ws):
+    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter):
 
         global trainer, model
 
@@ -202,14 +216,33 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         opt.ckpt = checkpoint
         opt.workspace = ws
         opt.lr = lr
-        opt.backbone = bb
-        if preset:
-            if preset[0] == 'grid':
-                opt.O = True
-            if preset[1] == 'vanilla':
-                opt.O2 = True
+        opt.jitter_pose = jitter
+        opt.albedo = albedo
+        opt.guidance = guide
+        if opt.albedo:
+            opt.albedo_iters = opt.iters
+
+        if bb_preset == 'grid':
+            opt.O = True
+            opt.fp16 = True
+            opt.dir_text = True
+            opt.cuda_ray = True
+
+        if bb_preset == 'vanilla':
+            opt.O2 = True
+            # only use fp16 if not evaluating normals (else lead to NaNs in training...)
+            if opt.albedo:
+                opt.fp16 = True
+            opt.dir_text = True
+            opt.backbone = 'vanilla'
+
         if mesh:
             opt.save_mesh = True
+
+        print(opt)
+        yield{
+            flags: gr.update(label='Values used this run', value=opt)
+        }
 
         seed_everything(seed)
 
@@ -241,7 +274,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         start_t = time.time()
 
         for epoch in range(max_epochs):
-
+            epoch_start_t = time.time()
             trainer.train_gui(train_loader, step=STEPS)
 
             # manual test and get intermediate results
@@ -273,24 +306,28 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
             total = total / 1024 ** 3
             free = free / 1024 ** 3
             used = total - free
-            mem_text = f'{torch.cuda.is_available()=} {torch.cuda.get_device_name(0)=} \r\n ' \
-                       f'USED -- FREE -- TOTAL\r\n ' \
-                       f'=====================\r\n ' \
-                       f'{round(used, 2)}, {round(free, 2)},  {round(total, 2)} in GB'
+            mem_text = f'USED {round(used, 2)} \r\n' \
+                       f' FREE {round(free, 2)} \r\n' \
+                       f' TOTAL {round(total, 2)}\r\n '
+
 
             yield {
                 image: gr.update(value=pred, visible=True),
                 depth_image: gr.update(value=pred_depth, visible=True),
                 video: gr.update(visible=False),
-                current_lr: gr.update(value=trainer.optimizer.param_groups[0]['lr'], visible=True),
+                current_lr: gr.update(value=round(trainer.optimizer.param_groups[0]['lr'], 5), visible=True),
                 logs: f"training iters: {epoch * STEPS} / {iters}, lr: {trainer.optimizer.param_groups[0]['lr']:.6f}",
-                memory: mem_text
+                memory: mem_text,
+                time_elapsed: gr.update(value=round((time.time() - start_t)/60,2)),
+                time_last_epoch: gr.update(value=round((time.time() - epoch_start_t)/60,2))
+                # TODO Make ETA and avg time happening
             }
 
         # test
         trainer.test(test_loader)
 
         results = glob.glob(os.path.join(opt.workspace, 'results', '*rgb*.mp4'))
+        mesh_obj = glob.glob(os.path.join(opt.workspace, 'results', '*.obj'))
 
         # TODO figure out how to save the mesh once it is generated
         assert results is not None, "cannot retrieve results!"
@@ -302,6 +339,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
             image: gr.update(visible=True),
             depth_image: gr.update(visible=True),
             video: gr.update(value=results[-1], visible=True),
+            mesh_viz: gr.update(value=mesh_obj, visible=True),
             logs: f"Generation Finished in {(end_t - start_t) / 60:.4f} minutes!",
         }
 

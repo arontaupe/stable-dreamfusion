@@ -122,10 +122,8 @@ if __name__ == '__main__':
             
             if opt.save_mesh:
                 trainer.save_mesh(resolution=256)
-            
-    
+
     else:
-        
         train_loader = NeRFDataset(opt, device=device, type='train', H=opt.h, W=opt.w, size=100).dataloader()
 
         optimizer = lambda model: torch.optim.Adam(model.get_params(opt.lr), betas=(0.9, 0.99), eps=1e-15)

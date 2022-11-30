@@ -1,0 +1,4 @@
+[INFO] Trainer: df | 2022-11-30_18-36-25 | cuda | fp16 | bee_sunflower
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
