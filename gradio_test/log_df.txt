@@ -76,3 +76,13 @@
 [WARN] No checkpoint found, model randomly initialized.
 ==> Start Test, save results to gradio_test/results
 ==> Finished Test.
+[INFO] Trainer: df | 2022-12-01_13-53-54 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+[INFO] Trainer: df | 2022-12-01_13-55-54 | cuda | fp16 | gradio_test
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+==> Start Test, save results to gradio_test/results
+==> Finished Test.
