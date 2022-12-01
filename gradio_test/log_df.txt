@@ -1,88 +1,36 @@
-[INFO] Trainer: df | 2022-11-30_13-15-57 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_13-18-02 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_13-22-20 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_13-28-54 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_13-47-48 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_14-35-16 | cuda | fp16 | gradio_test
+[INFO] Trainer: df | 2022-12-01_18-52-06 | cuda | fp16 | gradio_test
 [INFO] #parameters: 1815479
 [INFO] Loading latest checkpoint ...
 [WARN] No checkpoint found, model randomly initialized.
 ==> Start Test, save results to gradio_test/results
 ==> Finished Test.
-[INFO] Trainer: df | 2022-11-30_14-43-21 | cuda | fp16 | gradio_test
+[INFO] Trainer: df | 2022-12-01_19-00-28 | cuda | fp16 | gradio_test
 [INFO] #parameters: 1815479
 [INFO] Loading latest checkpoint ...
 [WARN] No checkpoint found, model randomly initialized.
 ==> Start Test, save results to gradio_test/results
+[WARN] no evaluated results found, skip saving best checkpoint.
 ==> Finished Test.
-[INFO] Trainer: df | 2022-11-30_14-53-29 | cuda | fp16 | gradio_test
+[INFO] Trainer: df | 2022-12-01_19-02-12 | cuda | fp16 | gradio_test
 [INFO] #parameters: 1815479
 [INFO] Loading latest checkpoint ...
 [WARN] No checkpoint found, model randomly initialized.
 ==> Start Test, save results to gradio_test/results
+[WARN] no evaluated results found, skip saving best checkpoint.
 ==> Finished Test.
-[INFO] Trainer: df | 2022-11-30_15-22-01 | cuda | fp16 | gradio_test
+[INFO] Trainer: df | 2022-12-01_19-10-07 | cuda | fp16 | gradio_test
 [INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
+[INFO] gradio_test/checkpoints/df.pth not found, loading latest ...
 [WARN] No checkpoint found, model randomly initialized.
 ==> Start Test, save results to gradio_test/results
+==> Saving Checkpoint, save results to gradio_test/results
+[WARN] no evaluated results found, skip saving best checkpoint.
 ==> Finished Test.
-[INFO] Trainer: df | 2022-11-30_17-01-15 | cuda | fp16 | gradio_test
+[INFO] Trainer: df | 2022-12-01_19-23-06 | cuda | fp16 | gradio_test
 [INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_17-08-27 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_17-21-16 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_17-46-04 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_17-47-03 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_17-58-21 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_18-05-36 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-11-30_18-07-40 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
+[INFO] gradio_test/checkpoints/df.pth not found, loading latest ...
 [WARN] No checkpoint found, model randomly initialized.
 ==> Start Test, save results to gradio_test/results
-==> Finished Test.
-[INFO] Trainer: df | 2022-12-01_13-53-54 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-[INFO] Trainer: df | 2022-12-01_13-55-54 | cuda | fp16 | gradio_test
-[INFO] #parameters: 1815479
-[INFO] Loading latest checkpoint ...
-[WARN] No checkpoint found, model randomly initialized.
-==> Start Test, save results to gradio_test/results
+==> Saving Checkpoint, save results to gradio_test/results
+[WARN] no evaluated results found, skip saving best checkpoint.
 ==> Finished Test.

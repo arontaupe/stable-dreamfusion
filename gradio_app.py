@@ -26,7 +26,7 @@ parser.add_argument('--guidance', type=str, default='stable-diffusion', help='ch
 parser.add_argument('--seed', type=int, default=0)
 
 ### training options
-parser.add_argument('--iters', type=int, default=10000, help="training iters")
+parser.add_argument('--iters', type=int, default=10, help="training iters")
 parser.add_argument('--lr', type=float, default=1e-3, help="initial learning rate")
 parser.add_argument('--ckpt', type=str, default='latest')
 parser.add_argument('--cuda_ray', action='store_true', help="use CUDA raymarching instead of pytorch")
@@ -124,6 +124,14 @@ trainer = None
 model = None
 
 # define UI
+def save(trainer):
+    try:
+        trainer.save_checkpoint(full=True, best=True)
+    except Exception as e:
+        yield {logs: f"[INFO] error Saving Checkpoint: {e}"}
+
+
+
 with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as demo:
     # title
     gr.Markdown('# DesireQuest')
@@ -132,7 +140,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     # inputs
     with gr.Tab("Default Options"):
         prompt = gr.Textbox(label="Prompt", max_lines=1, value="a DSLR photo of a koi fish")
-        iters = gr.Slider(label="Iters", minimum=100, maximum=20000, value=3000, step=100)
+        iters = gr.Slider(label="Iters", minimum=100, maximum=20000, value=100, step=100)
         seed = gr.Slider(label="Seed", minimum=0, maximum=2147483647, step=1, randomize=True)
 
     with gr.Tab("Advanced"):
@@ -142,7 +150,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
                         value="gradio_test", interactive=True)
         lr = gr.Slider(label="Initial Learning Rate", minimum=1e-4, maximum=1e-2, value=1e-3, step=1e-4,
                        interactive=True)
-        checkpoint = gr.Dropdown(label="Use Existing Checkpoints", choices=["latest", "scratch"], value='latest',
+        checkpoint = gr.Dropdown(label="Use Existing Checkpoints", choices=["latest", "scratch", "best", "latest_model"], value="best",
                                  interactive=True)
         steps_per_epoch = gr.Slider(label="Steps \r\n (Nr. of Steps in an Epoch, we get one Vis per Epoch)", minimum=8,
                                     maximum=32, value=8, step=2, interactive=True)
@@ -166,7 +174,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     with gr.Row():
         button = gr.Button('Train current Prompt')
         # TODO make this button actually do something. i would like best if it takes checkpoints regularly and pauses gracefully
-        checkpoint_button = gr.Button('Pause and create Checkpoint', interactive=False)
+        checkpoint_button = gr.Button('Pause and create Checkpoint', visible=False)
     # define here to give at button press
     inputs = [prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter]
 
@@ -198,7 +206,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     logs = gr.Textbox(label="logging")
 
     #define outputs as list to give at buttonpress
-    outputs = [image, depth_image, video, current_lr, logs, memory, flags, time_elapsed, time_last_epoch, mesh_viz, avg_epoch_time, time_eta]
+    outputs = [image, depth_image, video, current_lr, logs, memory, flags, time_elapsed, time_last_epoch, mesh_viz, avg_epoch_time, time_eta, checkpoint_button]
 
 
     def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter):
@@ -221,6 +229,8 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         opt.guidance = guide
         if opt.albedo:
             opt.albedo_iters = opt.iters
+        # Changed
+        opt.test = True
 
         if bb_preset == 'grid':
             opt.O = True
@@ -311,7 +321,18 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
                        f' FREE {round(free, 2)} \r\n' \
                        f' TOTAL {round(total, 2)}\r\n '
 
-            avg_time_per_epoch += (time.time() - start_t) /(epoch +1)
+
+
+                # timers
+            now = time.time()
+            time_elaps = now - start_t
+            epoch_time = now - epoch_start_t
+            avg_time_per_epoch = time_elaps / (epoch + 1)
+            remaining_iters = iters - (epoch * STEPS)
+            remaining_epochs = remaining_iters / STEPS
+            eta = avg_time_per_epoch * remaining_epochs
+
+
             yield {
                 image: gr.update(value=pred, visible=True),
                 depth_image: gr.update(value=pred_depth, visible=True),
@@ -319,39 +340,47 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
                 current_lr: gr.update(value=round(trainer.optimizer.param_groups[0]['lr'], 5), visible=True),
                 logs: f"training iters: {epoch * STEPS} / {iters}, lr: {trainer.optimizer.param_groups[0]['lr']:.6f}",
                 memory: mem_text,
-                time_elapsed: gr.update(value=round((time.time() - start_t)/60,2)),
-                time_last_epoch: gr.update(value=round((time.time() - epoch_start_t)/60,2)),
-                time_eta: gr.update(value=round(iters -(epoch * STEPS) * (time.time() - epoch_start_t)/60,2)),
+                time_elapsed: gr.update(value=round((time_elaps)/60,2)),
+                time_last_epoch: gr.update(value=round((epoch_time)/60,2)),
+                time_eta: gr.update(value=round(eta/60, 2)),
                 avg_epoch_time: gr.update(value=round(avg_time_per_epoch/60, 2)),
-
-                # TODO Make avg time happening
+                checkpoint_button: gr.update(visible=True)
             }
 
         # test
         trainer.test(test_loader)
 
-        results = glob.glob(os.path.join(opt.workspace, 'results', '*rgb*.mp4'))
-        mesh_obj = glob.glob(os.path.join(opt.workspace, 'results', '*.obj'))
+        # retrieving results
+        video_results = glob.glob(os.path.join(opt.workspace, 'results', '*rgb*.mp4'))
 
-        # TODO figure out how to save the mesh once it is generated
-        assert results is not None, "cannot retrieve results!"
-        results.sort(key=lambda x: os.path.getmtime(x))  # sort by mtime
+        assert video_results is not None, "cannot retrieve results!"
+        video_results.sort(key=lambda x: os.path.getmtime(x))  # sort by mtime
 
+        # save mesh
+        print("[INFO] Saving mesh")
+        yield { logs: f"[INFO] Saving mesh"}
+        try:
+            model.export_mesh(os.path.join(opt.workspace, 'results'))
+            mesh_results = glob.glob(os.path.join(opt.workspace, 'results', '*.obj'))
+            yield {logs: f"[INFO] Sucessfully saved Mesh"}
+        except Exception as e:
+            yield {logs: f"[INFO] error Saving mesh: {e}"}
+
+        assert mesh_results
         end_t = time.time()
 
         yield {
-            image: gr.update(visible=True),
-            depth_image: gr.update(visible=True),
-            video: gr.update(value=results[-1], visible=True),
-            mesh_viz: gr.update(value=mesh_obj, visible=True),
+            # image: gr.update(visible=True),
+            # depth_image: gr.update(visible=True),
+            video: gr.update(value=video_results[-1], visible=True),
+            mesh_viz: gr.update(value=mesh_results[-1], visible=True),
             logs: f"Generation Finished in {(end_t - start_t) / 60:.4f} minutes!",
         }
 
+    button.click(fn=submit, inputs=inputs, outputs=outputs)
+    # TODO get save button working
+    #checkpoint_button.click(fn=save(trainer), inputs=inputs, outputs=outputs)
 
-    button.click(
-        fn=submit,
-        inputs=inputs,
-        outputs=outputs)
 
 # concurrency_count: only allow ONE running progress, else GPU will OOM.
 demo.queue(concurrency_count=1)

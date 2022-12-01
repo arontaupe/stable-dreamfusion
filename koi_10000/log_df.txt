@@ -1,0 +1,6 @@
+[INFO] Trainer: df | 2022-12-01_14-09-32 | cuda | fp16 | koi_10000
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+==> Start Test, save results to koi_10000/results
+==> Finished Test.

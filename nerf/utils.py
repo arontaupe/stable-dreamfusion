@@ -492,6 +492,9 @@ class Trainer(object):
                 self.evaluate_one_epoch(valid_loader)
                 self.save_checkpoint(full=False, best=True)
 
+            if self.epoch % (self.eval_interval * 2) == 0:
+                self.save_checkpoint(full=True, best=True)
+
         end_t = time.time()
 
         self.log(f"[INFO] training takes {(end_t - start_t)/ 60:.4f} minutes.")
@@ -518,6 +521,12 @@ class Trainer(object):
 
         pbar = tqdm.tqdm(total=len(loader) * loader.batch_size, bar_format='{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
         self.model.eval()
+        # added by aron
+        # ------------------------
+        print('DEBUG SAVING CHECKPOINT')
+        self.log(f"==> Saving Checkpoint, save results to {save_path}")
+        self.save_checkpoint(full=True, best=True)
+        # -------------------------------
 
         if write_video:
             all_preds = []
@@ -845,6 +854,7 @@ class Trainer(object):
         self.log(f"++> Evaluate epoch {self.epoch} Finished.")
 
     def save_checkpoint(self, name=None, full=False, best=False):
+        print("DEBUG: entered save checkpoint")
 
         if name is None:
             name = f'{self.name}_ep{self.epoch:04d}'
@@ -867,7 +877,6 @@ class Trainer(object):
                 state['ema'] = self.ema.state_dict()
         
         if not best:
-
             state['model'] = self.model.state_dict()
 
             file_path = f"{name}.pth"
@@ -901,7 +910,9 @@ class Trainer(object):
                     torch.save(state, self.best_path)
             else:
                 self.log(f"[WARN] no evaluated results found, skip saving best checkpoint.")
-            
+
+        print("save checkpoint finished")
+
     def load_checkpoint(self, checkpoint=None, model_only=False):
         if checkpoint is None:
             checkpoint_list = sorted(glob.glob(f'{self.ckpt_path}/*.pth'))
