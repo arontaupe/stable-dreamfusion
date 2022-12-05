@@ -1,0 +1,6 @@
+[INFO] Trainer: df | 2022-12-01_12-22-27 | cuda | fp16 | wedding_cake
+[INFO] #parameters: 1815479
+[INFO] Loading latest checkpoint ...
+[WARN] No checkpoint found, model randomly initialized.
+==> Start Test, save results to wedding_cake/results
+==> Finished Test.
