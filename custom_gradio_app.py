@@ -154,9 +154,15 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
                                  interactive=True)
         steps_per_epoch = gr.Slider(label="Steps \r\n (Nr. of Steps in an Epoch, we get one Vis per Epoch)", minimum=8,
                                     maximum=32, value=8, step=2, interactive=True)
+        eval_int = gr.Slider(label="Evaluation Interval \r\n (How many Epochs to run before an evaluation step)", minimum=2,
+                                    maximum=50, value=10, step=2, interactive=True)
+
         guide = gr.Dropdown(label="Guidance", choices=["stable-diffusion", "clip"], value='stable-diffusion',
                             interactive=True)
+        version = gr.Dropdown(label="SD Version", choices=['1.5', '2.0'], value='2.0',
+                            interactive=True)
         mesh = gr.Checkbox(label="Save Mesh", interactive=True, value=True)
+        use_test = gr.Checkbox(label="Test", interactive=True, value=True)
         albedo = gr.Checkbox(label="Use Albedo as Color (uglier and faster)", interactive=True, value=False)
         jitter = gr.Checkbox(label="Add jitter to Camera Poses", interactive=True, value=False)
 
@@ -176,7 +182,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         # TODO make this button actually do something. i would like best if it takes checkpoints regularly and pauses gracefully
         checkpoint_button = gr.Button('Pause and create Checkpoint', visible=False)
     # define here to give at button press
-    inputs = [prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter]
+    inputs = [prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter, eval_int, use_test, version]
 
     # outputs
     with gr.Tab("Output"):
@@ -209,7 +215,8 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     outputs = [image, depth_image, video, current_lr, logs, memory, flags, time_elapsed, time_last_epoch, mesh_viz, avg_epoch_time, time_eta, checkpoint_button]
 
 
-    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter):
+    def submit(text, iters, seed, negative, suppress_face, checkpoint, lr,
+               bb_preset, mesh, ws, albedo, guide, jitter, eval_int, use_test, version):
 
         global trainer, model
 
@@ -230,7 +237,9 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         if opt.albedo:
             opt.albedo_iters = opt.iters
         # Changed
-        opt.test = True
+        opt.test = use_test
+        opt.eval_interval = eval_int
+        opt.sd_version = version
 
         if bb_preset == 'grid':
             opt.O = True
