@@ -1,6 +1,6 @@
 torch-ema
 ninja
-trimesh
+trimesh==3.17.1
 opencv-python
 tensorboardX
 torch
