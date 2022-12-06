@@ -492,9 +492,6 @@ class Trainer(object):
                 self.evaluate_one_epoch(valid_loader)
                 self.save_checkpoint(full=False, best=True)
 
-            if self.epoch % (self.eval_interval * 2) == 0:
-                self.save_checkpoint(full=True, best=True)
-
         end_t = time.time()
 
         self.log(f"[INFO] training takes {(end_t - start_t)/ 60:.4f} minutes.")
@@ -854,7 +851,6 @@ class Trainer(object):
         self.log(f"++> Evaluate epoch {self.epoch} Finished.")
 
     def save_checkpoint(self, name=None, full=False, best=False):
-        print("DEBUG: entered save checkpoint")
 
         if name is None:
             name = f'{self.name}_ep{self.epoch:04d}'
@@ -910,8 +906,6 @@ class Trainer(object):
                     torch.save(state, self.best_path)
             else:
                 self.log(f"[WARN] no evaluated results found, skip saving best checkpoint.")
-
-        print("save checkpoint finished")
 
     def load_checkpoint(self, checkpoint=None, model_only=False):
         if checkpoint is None:

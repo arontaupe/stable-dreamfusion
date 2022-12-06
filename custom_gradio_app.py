@@ -124,13 +124,9 @@ trainer = None
 model = None
 
 # define UI
-def save(trainer):
-    try:
-        trainer.save_checkpoint(full=True, best=True)
-    except Exception as e:
-        yield {logs: f"[INFO] error Saving Checkpoint: {e}"}
 
 
+#examples = [["A Pig wearing a Backpack", 1000, 0, "", False, 'best', 0.001, 'vanilla', True, "example",False, 'stable-diffusion', False, 50,True,'2.0'],]
 
 with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as demo:
     # title
@@ -140,7 +136,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     # inputs
     with gr.Tab("Default Options"):
         prompt = gr.Textbox(label="Prompt", max_lines=1, value="a DSLR photo of a koi fish")
-        iters = gr.Slider(label="Iters", minimum=100, maximum=20000, value=100, step=100)
+        iters = gr.Slider(label="Iters", minimum=100, maximum=20000, value=500, step=100)
         seed = gr.Slider(label="Seed", minimum=0, maximum=2147483647, step=1, randomize=True)
 
     with gr.Tab("Advanced"):
@@ -153,9 +149,9 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         checkpoint = gr.Dropdown(label="Use Existing Checkpoints", choices=["latest", "scratch", "best", "latest_model"], value="best",
                                  interactive=True)
         steps_per_epoch = gr.Slider(label="Steps \r\n (Nr. of Steps in an Epoch, we get one Vis per Epoch)", minimum=8,
-                                    maximum=32, value=8, step=2, interactive=True)
-        eval_int = gr.Slider(label="Evaluation Interval \r\n (How many Epochs to run before an evaluation step)", minimum=2,
-                                    maximum=50, value=10, step=2, interactive=True)
+                                    maximum=32, value=12, step=2, interactive=True)
+        eval_int = gr.Slider(label="Evaluation Interval \r\n (How many Epochs to run before an evaluation step)", minimum=10,
+                                    maximum=200, value=50, step=10, interactive=True)
 
         guide = gr.Dropdown(label="Guidance", choices=["stable-diffusion", "clip"], value='stable-diffusion',
                             interactive=True)
@@ -170,7 +166,7 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
         cuda = gr.Checkbox(label="Use Cuda Raymarching", interactive=True, value=False)
         bb_preset = gr.Dropdown(label="Use Presets",
                                   choices=['none', "grid", "vanilla"],
-                                value='none',
+                                value='vanilla',
                                   interactive=True)
     with gr.Tab("Optimizer"):
         gr.Markdown('The paper uses standard ADAM. We DO NOT fuck with that.')
@@ -215,8 +211,10 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
     outputs = [image, depth_image, video, current_lr, logs, memory, flags, time_elapsed, time_last_epoch, mesh_viz, avg_epoch_time, time_eta, checkpoint_button]
 
 
+
+
     def submit(text, iters, seed, negative, suppress_face, checkpoint, lr,
-               bb_preset, mesh, ws, albedo, guide, jitter, eval_int, use_test, version):
+               bb_preset, mesh, ws, albedo, guide, jitter, eval_int, use_test, version,):
 
         global trainer, model
 
@@ -297,6 +295,12 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
             epoch_start_t = time.time()
             trainer.train_gui(train_loader, step=STEPS)
 
+            trainer.epoch = epoch
+
+            if trainer.epoch % trainer.eval_interval == 0:
+                trainer.evaluate_one_epoch(valid_loader)
+                trainer.save_checkpoint(full=True, best=True)
+
             # manual test and get intermediate results
             try:
                 data = next(loader)
@@ -340,7 +344,6 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
             remaining_iters = iters - (epoch * STEPS)
             remaining_epochs = remaining_iters / STEPS
             eta = avg_time_per_epoch * remaining_epochs
-
 
             yield {
                 image: gr.update(value=pred, visible=True),
@@ -386,7 +389,10 @@ with gr.Blocks(css=".gradio-container {max-width: 1024px; margin: auto;}") as de
             logs: f"Generation Finished in {(end_t - start_t) / 60:.4f} minutes!",
         }
 
-    button.click(fn=submit, inputs=inputs, outputs=outputs)
+#     inputs = [prompt, iters, seed, negative, suppress_face, checkpoint, lr, bb_preset, mesh, ws, albedo, guide, jitter, eval_int, use_test, version]
+
+    button.click(fn=submit, inputs=inputs, outputs=outputs )
+
     # TODO get save button working
     #checkpoint_button.click(fn=save(trainer), inputs=inputs, outputs=outputs)
 

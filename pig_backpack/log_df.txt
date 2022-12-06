@@ -1,0 +1,8 @@
+[INFO] Trainer: df | 2022-12-06_12-29-16 | cuda | fp16 | pig_backpack
+[INFO] #parameters: 1815479
+[INFO] pig_backpack/checkpoints/df.pth not found, loading latest ...
+[WARN] No checkpoint found, model randomly initialized.
+==> Start Test, save results to pig_backpack/results
+==> Saving Checkpoint, save results to pig_backpack/results
+[WARN] no evaluated results found, skip saving best checkpoint.
+==> Finished Test.
