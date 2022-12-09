@@ -520,7 +520,6 @@ class Trainer(object):
         self.model.eval()
         # added by aron
         # ------------------------
-        print('DEBUG SAVING CHECKPOINT')
         self.log(f"==> Saving Checkpoint, save results to {save_path}")
         self.save_checkpoint(full=True, best=True)
         # -------------------------------
