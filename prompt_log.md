@@ -24,3 +24,10 @@ Mesh
 ``
 python main.py --text "a high quality photo of a pineapple" --workspace pineapple -O  --iters 150000
 ``
+
+## a DSLR photo of  a bear in a tutu dancing ballet
+
+``
+python main.py --text "a DSLR photo of  a bear in a tutu dancing ballet" --workspace bear -O
+``
+## a high quality photo of  a chimpanzee playing football
