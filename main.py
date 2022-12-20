@@ -3,7 +3,6 @@ import argparse
 
 from nerf.provider import NeRFDataset
 from nerf.utils import *
-from optimizer import Shampoo
 
 from nerf.gui import NeRFGUI
 
@@ -25,7 +24,9 @@ if __name__ == '__main__':
 
     ### training options
     parser.add_argument('--iters', type=int, default=10000, help="training iters")
-    parser.add_argument('--lr', type=float, default=1e-3, help="initial learning rate")
+    parser.add_argument('--lr', type=float, default=1e-3, help="max learning rate")
+    parser.add_argument('--warm_iters', type=int, default=500, help="training iters")
+    parser.add_argument('--min_lr', type=float, default=1e-4, help="initial learning rate")
     parser.add_argument('--ckpt', type=str, default='latest')
     parser.add_argument('--cuda_ray', action='store_true', help="use CUDA raymarching instead of pytorch")
     parser.add_argument('--max_steps', type=int, default=512, help="max num steps sampled per ray (only valid when using --cuda_ray)")
@@ -39,10 +40,14 @@ if __name__ == '__main__':
     # model options
     parser.add_argument('--bg_radius', type=float, default=1.4, help="if positive, use a background model at sphere(bg_radius)")
     parser.add_argument('--density_thresh', type=float, default=10, help="threshold for density grid to be occupied")
+    parser.add_argument('--blob_density', type=float, default=10, help="max (center) density for the gaussian density blob")
+    parser.add_argument('--blob_radius', type=float, default=0.3, help="control the radius for the gaussian density blob")
     # network backbone
     parser.add_argument('--fp16', action='store_true', help="use amp mixed precision training")
     parser.add_argument('--backbone', type=str, default='grid', choices=['grid', 'vanilla'], help="nerf backbone")
+    parser.add_argument('--optim', type=str, default='adan', choices=['adan', 'adam', 'adamw'], help="optimizer")
     parser.add_argument('--sd_version', type=str, default='2.0', choices=['1.5', '2.0'], help="stable diffusion version")
+    parser.add_argument('--hf_key', type=str, default=None, help="hugging face Stable diffusion model key")
     # rendering resolution in training, decrease this if CUDA OOM.
     parser.add_argument('--w', type=int, default=64, help="render width for NeRF in training")
     parser.add_argument('--h', type=int, default=64, help="render height for NeRF in training")
@@ -123,19 +128,33 @@ if __name__ == '__main__':
             
             if opt.save_mesh:
                 trainer.save_mesh(resolution=256)
-
+    
     else:
+        
         train_loader = NeRFDataset(opt, device=device, type='train', H=opt.h, W=opt.w, size=100).dataloader()
 
-        optimizer = lambda model: torch.optim.Adam(model.get_params(opt.lr), betas=(0.9, 0.99), eps=1e-15)
-        # optimizer = lambda model: Shampoo(model.get_params(opt.lr))
+        if opt.optim == 'adan':
+            from optimizer import Adan
+            # Adan usually requires a larger LR
+            optimizer = lambda model: Adan(model.get_params(5 * opt.lr), eps=1e-15, weight_decay=2e-5)
+        elif opt.optim == 'adamw':
+            optimizer = lambda model: torch.optim.AdamW(model.get_params(opt.lr), betas=(0.9, 0.99), eps=1e-15)
+        else: # adam
+            optimizer = lambda model: torch.optim.Adam(model.get_params(opt.lr), betas=(0.9, 0.99), eps=1e-15)
 
-        scheduler = lambda optimizer: optim.lr_scheduler.LambdaLR(optimizer, lambda iter: 0.1 ** min(iter / opt.iters, 1))
-        # scheduler = lambda optimizer: optim.lr_scheduler.OneCycleLR(optimizer, max_lr=opt.lr, total_steps=opt.iters, pct_start=0.1)
+        if opt.backbone == 'vanilla':
+            warm_up_with_cosine_lr = lambda iter: iter / opt.warm_iters if iter <= opt.warm_iters \
+                else max(0.5 * ( math.cos((iter - opt.warm_iters) /(opt.iters - opt.warm_iters) * math.pi) + 1), 
+                         opt.min_lr / opt.lr)
+
+            scheduler = lambda optimizer: optim.lr_scheduler.LambdaLR(optimizer, warm_up_with_cosine_lr)
+        else:
+            scheduler = lambda optimizer: optim.lr_scheduler.LambdaLR(optimizer, lambda iter: 1) # fixed
+            # scheduler = lambda optimizer: optim.lr_scheduler.LambdaLR(optimizer, lambda iter: 0.1 ** min(iter / opt.iters, 1))
 
         if opt.guidance == 'stable-diffusion':
             from nerf.sd import StableDiffusion
-            guidance = StableDiffusion(device, opt.sd_version)
+            guidance = StableDiffusion(device, opt.sd_version, opt.hf_key)
         elif opt.guidance == 'clip':
             from nerf.clip import CLIP
             guidance = CLIP(device)
